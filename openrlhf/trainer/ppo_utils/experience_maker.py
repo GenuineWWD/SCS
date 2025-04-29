@@ -11,9 +11,9 @@ import torch.nn as nn
 from tqdm import tqdm
 
 from openrlhf.models.actor import Actor
-from openrlhf.models.utils import compute_approx_kl, compute_reward, masked_mean, unpacking_samples
+from openrlhf.models.utils import compute_approx_kl, compute_reward, masked_mean, unpacking_samples,circular_access,group_by_prompt_id
 from openrlhf.utils.logging_utils import init_logger
-from openrlhf.utils.remote_rm_utils import remote_rm_fn, remote_rm_fn_ray
+from openrlhf.utils.remote_rm_utils import remote_rm_fn, remote_rm_fn_ray,remote_rm_fn_cut_response,remote_rm_fn_ray_cut_response
 
 logger = init_logger(__name__)
 
@@ -123,7 +123,7 @@ class Samples:
     total_length: torch.Tensor
     prompts: list[str]
     visual_inputs: Optional[Dict]
-
+    cut_response: Optional[Dict]
 
 class NaiveExperienceMaker(ABC):
     """
@@ -630,10 +630,20 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
                     sequences_list.append(tokens_list[offset : offset + length])
                     offset += length
                 queries = self.tokenizer.batch_decode(sequences_list, skip_special_tokens=False)
-
+            cut_response = True
             if self.custom_reward_func:
                 r = self.custom_reward_func.remote(queries, samples.prompts)
                 r_refs.append(r)
+            elif cut_response:
+                for rm in self.remote_rm_url:
+                    cut_response_dict = samples.cut_response
+                    cut_response_text_dict = {}
+                    #print(cut_response_text_dict)
+                    for key,value in cut_response_dict.items():
+                        response_tmp = self.tokenizer.batch_decode([value], skip_special_tokens=False)[0]
+                        cut_response_text_dict[key] = response_tmp
+                    r = remote_rm_fn_ray_cut_response.remote(rm, queries=queries, prompts=samples.prompts,cut_response_text_dict=cut_response_text_dict)
+                    r_refs.append(r)
             else:
                 for rm in self.remote_rm_url:
                     r = remote_rm_fn_ray.remote(rm, queries=queries, prompts=samples.prompts)
@@ -791,7 +801,7 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
                             },
                         } for p, imgs in zip(prompts,images)]
                     refs.append(
-                        llm.add_requests_vlm.remote(rank, sampling_params=sampling_params, vllm_vision_input=vllm_inputs)
+                        llm.add_requests_vlm_id.remote(rank, sampling_params=sampling_params, vllm_vision_input=vllm_inputs)
                     )
         else:
             raise ValueError("Unknown data processor!")
@@ -806,6 +816,133 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
         for i, llm in enumerate(llms):
             all_output_refs.append(llm.get_responses.remote(rank))
         all_outputs = sum(ray.get(all_output_refs), [])
+
+        # cut response and regenerate
+        # for i in range(0, len(all_outputs)):
+        #     output = all_outputs[i]
+        #     for i in range(5):
+        #         llm = circular_access(llms, i)
+        #         prompt_ids_list = list(output["response"].prompt_token_ids)
+        #         response_ids_list = list(output["response"].outputs[0].token_ids)
+        #         #print(output["response"].outputs[0].token_ids)
+        #         prompts_text = self.data_processor.tokenizer.batch_decode(prompt_ids_list, skip_special_tokens=False)
+        #         cut_idx = int(len(response_ids_list)*0.8)
+        #         cut_response_ids = response_ids_list[:cut_idx]
+        #         cut_response = self.data_processor.tokenizer.batch_decode(cut_response_ids, skip_special_tokens=False)
+        #         #p = [prompts_text[0] + cut_response[0]]
+        #         p = ''.join(prompts_text) + ''.join(cut_response)
+        #         # print('prompts_text is :',prompts_text)
+        #         # print('cut_response is :',cut_response)
+        #         #print("prompt 是：",p)
+        #         #exit()
+        #         vllm_inputs = [{
+        #                 "prompt": p,
+        #                 "multi_modal_data":output['image_input'],
+        #                 "mm_processor_kwargs": {
+        #                     "min_pixels": int(os.getenv("MIN_PIXELS", 4 * 28 * 28)),
+        #                     "max_pixels": int(os.getenv("MAX_PIXELS", 640 * 28 * 28)),
+        #                 },
+        #             }]
+        #         refs.append(
+        #             llm.add_requests_vlm.remote(rank, sampling_params=sampling_params, vllm_vision_input=vllm_inputs)
+        #         )
+        #     ray.get(refs)
+
+        #     # Make sure all requests are sent.
+        #     torch.distributed.barrier()
+
+        #     # Retrieve and combine results from all outputs
+        #     all_cut_output_refs = []
+        #     for i, llm in enumerate(llms):
+        #         all_cut_output_refs.append(llm.get_responses.remote(rank))
+        #     all_cut_outputs_for_one_sample = sum(ray.get(all_cut_output_refs), [])
+
+        #     for idx,cut_output in enumerate(all_cut_outputs_for_one_sample):
+        #         cut_output_ids_list = list(cut_output["response"].outputs[0].token_ids)
+        #         cut_output_ids_tensor = torch.tensor(cut_output_ids_list)
+        #         #cut_output_tokens_list = self.data_processor.tokenizer.batch_decode(cut_output_ids_list, skip_special_tokens=False)
+        #         #output[f'cut_response_{idx}'] = ''.join(cut_output_tokens_list)  # list
+        #         output['cut_response'] = {}
+        #         output['cut_response'][f'cut_response_{idx}'] = cut_output_ids_tensor  #torch.tensor
+
+        # Expand prompt list based on the number of cut_samples per prompt
+        all_outputs_to_cut = deepcopy(all_outputs)
+        all_outputs_to_cut_expand = sum([[prompt] * 4 for prompt in all_outputs_to_cut], [])
+        cut_batch_size = (len(all_outputs_to_cut_expand) + len(llms) - 1) // len(llms)
+        # Distribute requests to engines and collect responses to outputs
+        cut_refs = []
+        for i, llm in enumerate(llms):
+            messages = all_outputs_to_cut_expand[i * cut_batch_size : (i + 1) * cut_batch_size]
+            if messages:
+                # prompts = self.data_processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+                # images = [self.data_processor.get_images_from_messages(m) for m in messages]
+                # vllm_inputs = [{
+                #         "prompt": p,
+                #         "multi_modal_data":{"image": imgs} if imgs else None,
+                #         "mm_processor_kwargs": {
+                #             "min_pixels": int(os.getenv("MIN_PIXELS", 4 * 28 * 28)),
+                #             "max_pixels": int(os.getenv("MAX_PIXELS", 640 * 28 * 28)),
+                #         },
+                #     } for p, imgs in zip(prompts,images)]
+                # cut_refs.append(
+                #     llm.add_requests_vlm.remote(rank, sampling_params=sampling_params, vllm_vision_input=vllm_inputs)
+                # )
+                vllm_inputs = []
+                for output in messages:
+                    prompt_ids_list = list(output["response"].prompt_token_ids)
+                    response_ids_list = list(output["response"].outputs[0].token_ids)
+                    #print(output["response"].outputs[0].token_ids)
+                    prompts_text = self.data_processor.tokenizer.batch_decode(prompt_ids_list, skip_special_tokens=False)
+                    cut_idx = int(len(response_ids_list)*0.8)
+                    cut_response_ids = response_ids_list[:cut_idx]
+                    cut_response = self.data_processor.tokenizer.batch_decode(cut_response_ids, skip_special_tokens=False)
+                    #p = [prompts_text[0] + cut_response[0]]
+                    p = ''.join(prompts_text) + ''.join(cut_response)
+                    # print('prompts_text is :',prompts_text)
+                    # print('cut_response is :',cut_response)
+                    #print("prompt 是：",p)
+                    #exit()
+                    # vllm_inputs = [{
+                    #         "prompt": p,
+                    #         "multi_modal_data":output['image_input'],
+                    #         "mm_processor_kwargs": {
+                    #             "min_pixels": int(os.getenv("MIN_PIXELS", 4 * 28 * 28)),
+                    #             "max_pixels": int(os.getenv("MAX_PIXELS", 640 * 28 * 28)),
+                    #         },
+                    #     }]
+                    vllm_inputs.append({
+                            "prompt": p,
+                            "multi_modal_data":output['image_input'],
+                            "mm_processor_kwargs": {
+                                "min_pixels": int(os.getenv("MIN_PIXELS", 4 * 28 * 28)),
+                                "max_pixels": int(os.getenv("MAX_PIXELS", 640 * 28 * 28)),
+                            },
+                            'prompt_id':output['prompt_id']
+                        })
+                cut_refs.append(
+                    llm.add_requests_vlm_id.remote(rank, sampling_params=sampling_params, vllm_vision_input=vllm_inputs)
+                )
+        ray.get(cut_refs)
+        torch.distributed.barrier()
+        all_cut_output_refs = []
+        for i, llm in enumerate(llms):
+            all_cut_output_refs.append(llm.get_responses.remote(rank))
+        all_cut_outputs = sum(ray.get(all_cut_output_refs), [])
+
+        print('Making cut_response data map...')
+        grouped_cut_outputs = group_by_prompt_id(all_cut_outputs)
+        grouped_cut_outputs_dict = {}
+        for prompt_id,cut_outputs in grouped_cut_outputs.items():
+            grouped_cut_outputs_dict[prompt_id] = {}
+            for idx,cut_output in enumerate(cut_outputs):
+                cut_output_ids_list = list(cut_output["response"].outputs[0].token_ids)
+                cut_output_ids_tensor = torch.tensor(cut_output_ids_list)
+                #cut_output_tokens_list = self.data_processor.tokenizer.batch_decode(cut_output_ids_list, skip_special_tokens=False)
+                #output[f'cut_response_{idx}'] = ''.join(cut_output_tokens_list)  # list
+                grouped_cut_outputs_dict[prompt_id][f'cut_response_{idx}'] = cut_output_ids_tensor  #torch.tensor
+        print('cut_response data map have been made successfully!')
+
+
 
         samples_list = []
         for i in range(0, len(all_outputs), args.micro_rollout_batch_size):
@@ -865,12 +1002,15 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
                 action_mask = action_mask.to("cuda")
                 if not self.data_processor:
                     visual_inputs = {}
+                    cut_response = {}
                 elif self.data_processor.model_family == "qwen":
                     visual_inputs = None
                     visual_inputs = self.data_processor(prompts, self.prompt_max_len, device="cuda")
                     visual_inputs.pop("input_ids")
                     visual_inputs.pop("attention_mask")
                     visual_inputs = {k: v.to("cuda") for k, v in visual_inputs.items()}
+                    #cut_response = output['cut_response']
+                    cut_response = grouped_cut_outputs_dict[output['prompt_id']]
                 elif self.data_processor.model_family == "internvl":
                     pixel_values = torch.cat(pixel_values, dim=0).to(torch.bfloat16) 
                     image_num_patches = torch.tensor(image_num_patches, dtype=torch.long) 
@@ -892,6 +1032,7 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
                         total_length=attention_mask.float().sum(dim=-1),
                         prompts=prompts,
                         visual_inputs=visual_inputs,
+                        cut_response=cut_response
                     )
                 )
 

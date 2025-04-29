@@ -133,10 +133,79 @@ class LLMRayActor:
                 else:
                     responses = [
                         {
-                            "response": response
+                            "response": response,
+                            'image_input':img_input['multi_modal_data']
                         }
-                        for response in raw_responses
+                        for response,img_input in zip(raw_responses,vllm_vision_input)
                     ]
+            else:
+                responses = []
+
+            offset = 0
+            self.responses = {}
+            for actor_rank, num in num_requests:
+                self.responses[actor_rank] = responses[offset : offset + num]
+                offset += num
+
+            self.actor_counter = 0
+            self.requests = {}
+
+    def add_requests_vlm_id(self, actor_rank, *, sampling_params, vllm_vision_input,internvl=False):
+        """
+        Save the requests from actors and generate responses when all actors have sent their requests
+        """
+        
+        self.requests[actor_rank] = vllm_vision_input
+        self.actor_counter += 1
+        if self.actor_counter == self.num_actors:
+            assert len(self.requests) == self.num_actors
+            num_requests = []
+            requests = []
+            prompt_id_list = []
+            for actor_rank, request in self.requests.items():
+                num_requests.append((actor_rank, len(request)))
+                requests.extend(request)
+            
+            for item in requests:
+                if 'prompt_id' in item:
+                    prompt_id_list.append(item['prompt_id'])
+                    del item['prompt_id']
+
+            if len(requests) > 0:
+                # For now we assume that all requests have the same sampling params
+                raw_responses = self.llm.generate(requests, sampling_params=sampling_params)
+                if internvl:
+                    mm_inputs = [
+                        self.llm.llm_engine.input_processor(
+                            self.llm.llm_engine.input_preprocessor.preprocess(request, request_id="-1")
+                        )
+                        for request in requests
+                    ]
+                    responses = [
+                        {
+                            "response": response,
+                            "pixel_values": mm_input["mm_kwargs"]["pixel_values_flat"],
+                            "image_num_patches": mm_input["mm_kwargs"]["image_num_patches"].sum(),
+                        }
+                        for response, mm_input in zip(raw_responses, mm_inputs)
+                    ]
+                else:
+                    responses = [
+                        {
+                            "response": response,
+                            'image_input':img_input['multi_modal_data']
+                        }
+                        for response,img_input in zip(raw_responses,vllm_vision_input)
+                    ]
+                
+                #add id to prompt
+                if len(prompt_id_list)==0:
+                    for idx,item in enumerate(responses):
+                        item['prompt_id'] = f'{idx:08d}'
+                else:
+                    for idx,item in enumerate(responses):
+                        item['prompt_id'] = prompt_id_list[idx]
+
             else:
                 responses = []
 

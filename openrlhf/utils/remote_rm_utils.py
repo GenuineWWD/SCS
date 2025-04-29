@@ -39,10 +39,21 @@ def remote_rm_fn(api_url, queries, prompts, score_key="rewards"):
     scores = request_api_wrapper(api_url, {"query": queries, "prompts": prompts}, score_key)
     return torch.tensor(scores)
 
+def remote_rm_fn_cut_response(api_url, queries, prompts, cut_response_text_dict,score_key="rewards"):
+    """remote reward model API
+    only for cut_response rewards
+    """
+    scores = request_api_wrapper(api_url, {"query": queries, "prompts": prompts,'cut_response_text_dict':cut_response_text_dict}, score_key)
+    return torch.tensor(scores)
 
 @ray.remote
 def remote_rm_fn_ray(api_url, queries, prompts, score_key="rewards"):
     return remote_rm_fn(api_url, queries, prompts, score_key)
+
+
+@ray.remote
+def remote_rm_fn_ray_cut_response(api_url, queries, prompts, cut_response_text_dict,score_key="rewards"):
+    return remote_rm_fn_cut_response(api_url, queries, prompts, cut_response_text_dict,score_key)
 
 
 if __name__ == "__main__":

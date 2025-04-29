@@ -130,3 +130,43 @@ def unpacking_samples(values: torch.Tensor, packed_seqlens: list[int]):
         unpacked_values.append(values[offset : offset + seqlen])
         offset += seqlen
     return unpacked_values
+
+def circular_access(lst, index):
+    if not lst:  # 处理空列表
+        raise IndexError("列表不能为空")
+    return lst[index % len(lst)]
+
+def group_by_prompt_id(data_list):
+    """
+    根据prompt_id对字典列表进行分类
+    
+    参数:
+    data_list (list) - 字典组成的列表，每个字典必须包含'prompt_id'键
+    
+    返回:
+    dict - 结构为 {prompt_id值: [对应字典1, 对应字典2...]}
+    
+    示例:
+    >>> input_data = [
+        {'prompt_id': '001', 'text': 'A'},
+        {'prompt_id': '002', 'text': 'B'},
+        {'prompt_id': '001', 'text': 'C'}
+    ]
+    >>> group_by_prompt_id(input_data)
+    {
+        '001': [{'prompt_id': '001', 'text': 'A'}, {'prompt_id': '001', 'text': 'C'}],
+        '002': [{'prompt_id': '002', 'text': 'B'}]
+    }
+    """
+    grouped_dict = {}
+    for item in data_list:
+        # 提取当前条目的prompt_id
+        pid = item['prompt_id']
+        
+        # 如果该pid已存在，追加到列表；否则创建新键
+        if pid in grouped_dict:
+            grouped_dict[pid].append(item)
+        else:
+            grouped_dict[pid] = [item]
+    
+    return grouped_dict
