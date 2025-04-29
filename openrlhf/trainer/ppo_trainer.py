@@ -109,7 +109,7 @@ class PPOTrainer(ABC):
         if self.args.train_vlm and processor is not None and self.args.model_family=="qwen":
             self.data_processor = DATA_PROCESSOR_MAP[type(processor)](processor)
             self.tokenizer = self.data_processor.tokenizer
-        elif self.args.model_family=="internvl":
+        elif self.args.train_vlm and self.args.model_family=="internvl":
             self.data_processor = DATA_PROCESSOR_MAP["InternVLProcessor"](processor,tokenizer)
             self.tokenizer = self.data_processor.tknz
 

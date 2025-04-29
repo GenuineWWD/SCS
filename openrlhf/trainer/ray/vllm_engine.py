@@ -79,7 +79,13 @@ class LLMRayActor:
 
             if len(requests) > 0:
                 # For now we assume that all requests have the same sampling params
-                responses = self.llm.generate(sampling_params=sampling_params, prompt_token_ids=requests)
+                raw_responses = self.llm.generate(sampling_params=sampling_params, prompt_token_ids=requests)
+                responses = [
+                        {
+                            "response": response
+                        }
+                        for response in raw_responses
+                    ]
             else:
                 responses = []
 

@@ -310,7 +310,7 @@ class ActorModelRayActor(BasePPORole):
                 pretrain, actor.model, "left", strategy, use_fast=not strategy.args.disable_fast_tokenizer
             )
             self.tokenizer = self.processor.tokenizer
-        elif args.model_family=="internvl":
+        elif args.train_vlm and (args.model_family=="internvl"):
             self.processor = None
             self.tokenizer = get_tokenizer(
                 pretrain, actor.model, "left", strategy, use_fast=not strategy.args.disable_fast_tokenizer

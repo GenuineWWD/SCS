@@ -863,7 +863,9 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
                 sequences = sequences.to("cuda")
                 attention_mask = attention_mask.to("cuda")
                 action_mask = action_mask.to("cuda")
-                if self.data_processor.model_family == "qwen":
+                if not self.data_processor:
+                    visual_inputs = {}
+                elif self.data_processor.model_family == "qwen":
                     visual_inputs = None
                     visual_inputs = self.data_processor(prompts, self.prompt_max_len, device="cuda")
                     visual_inputs.pop("input_ids")
@@ -878,8 +880,6 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
                         "pixel_values":pixel_values,
                         "image_num_patches":image_num_patches
                     }
-                else:
-                    visual_inputs = {}
 
                 samples_list.append(
                     Samples(

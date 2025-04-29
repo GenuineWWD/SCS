@@ -68,7 +68,7 @@ def split_experience_batch(experience: Experience, data_processor: Optional[Base
         for i, visual_inputs in enumerate(visual_inputs_chunks):
             visual_inputs.pop('input_ids')
             batch_kwargs[i]["visual_inputs"] = visual_inputs
-    elif data_processor.model_family == "internvl":
+    elif data_processor is not None and data_processor.model_family == "internvl":
         visual_inputs_batch = experience.visual_inputs
         start = 0
         end = 0
