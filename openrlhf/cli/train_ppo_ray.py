@@ -329,7 +329,7 @@ if __name__ == "__main__":
     parser.add_argument("--reward_clip_range", type=float, nargs=2, default=(-10, 10), help="Reward clip range")
     parser.add_argument("--train_vlm", action="store_true", default=False)
     parser.add_argument("--model_family",
-        choices=["qwen", "internvl"],
+        choices=["qwen","qwenvl", "internvl"],
         default="qwen",
         help="Choose model type: qwen, internvl")
     parser.add_argument("--freeze_prefix", type=str, nargs="+", default=None,

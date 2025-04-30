@@ -112,7 +112,7 @@ class Qwen2VLDataProcessor(BaseDataProcessor):
     def __init__(self, processor: ProcessorMixin):
         super().__init__(processor)
 
-        self.model_family = "qwen"
+        self.model_family = "qwenvl"
     def __call__(
         self,
         messages,
@@ -318,17 +318,70 @@ class InternVLDataProcessor(BaseDataProcessor):
 
     def split_input_batch(self) -> List[Dict]:
         pass
-        
+
+class QwenDataProcessor(BaseDataProcessor):
+    def __init__(self, processor: ProcessorMixin,tknz):
+        super().__init__(processor)
+
+        self.tknz = tknz
+        #self.tknz = AutoTokenizer.from_pretrained("/mnt/afs/wangjiahao/workspace/hf_home/Qwen2.5-Math-7B-Instruct")
+        self.tknz.padding_side = "left"
+        self.model_family = "qwen"
+    def __call__(
+        self,
+    ) -> Dict:
+        pass    
+    
+    def apply_chat_template(
+        self,
+        messages: Union[Dict, List[str], str],
+        tokenize: bool = False,
+        add_generation_prompt: bool = True,
+    ) -> List[str]:
+        messages = self._format_messages(messages)[0]
+        return self.tknz.apply_chat_template(
+            messages, tokenize=tokenize, add_generation_prompt=add_generation_prompt
+        )
+    
+    def tokenize_message(self,messages,max_length,
+                         tokenize: bool = False,add_generation_prompt: bool = True):
+        format_prompt = self.apply_chat_template(messages,tokenize,add_generation_prompt)
+
+        return self.tknz(
+                format_prompt,
+                add_special_tokens=False,
+                max_length=max_length,
+                truncation=True,
+            )['input_ids']
+    
+    def tokenize_text(self,text):
+        return self.tknz(
+                text,
+                add_special_tokens=False,
+                truncation=True,
+            )['input_ids']
+
+
+    def _get_images_from_messages(self):
+        pass
+
+    def make_input_batch(self):
+        pass
+    def split_input_batch(self) -> List[Dict]:
+        pass
+
 
 try:
     DATA_PROCESSOR_MAP = {
         Qwen2VLProcessor: Qwen2VLDataProcessor,
         Qwen2_5_VLProcessor: Qwen2VLDataProcessor,
-        "InternVLProcessor" : InternVLDataProcessor
+        "InternVLProcessor" : InternVLDataProcessor,
+        'QwenDataProcessor':QwenDataProcessor
     }
 except:
      DATA_PROCESSOR_MAP = {
         Qwen2VLProcessor: Qwen2VLDataProcessor,
-        "InternVLProcessor" : InternVLDataProcessor
+        "InternVLProcessor" : InternVLDataProcessor,
+        'QwenDataProcessor':QwenDataProcessor
     }
 

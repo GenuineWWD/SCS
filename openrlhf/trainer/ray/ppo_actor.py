@@ -305,7 +305,7 @@ class ActorModelRayActor(BasePPORole):
             strategy.print(f"Froze {frozen_count}/{total_params} parameters based on prefixes: {strategy.args.freeze_prefix}")
 
         # configure tokenizer
-        if args.train_vlm and (args.model_family=="qwen"):
+        if args.train_vlm and (args.model_family=="qwenvl"):
             self.processor = get_vl_processor(
                 pretrain, actor.model, "left", strategy, use_fast=not strategy.args.disable_fast_tokenizer
             )

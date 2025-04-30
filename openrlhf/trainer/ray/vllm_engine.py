@@ -195,8 +195,63 @@ class LLMRayActor:
                             "response": response,
                             'image_input':img_input['multi_modal_data']
                         }
-                        for response,img_input in zip(raw_responses,vllm_vision_input)
+                        for response,img_input in zip(raw_responses,requests)
                     ]
+                
+                #add id to prompt
+                if len(prompt_id_list)==0:
+                    for idx,item in enumerate(responses):
+                        item['prompt_id'] = f'{idx:08d}'
+                else:
+                    for idx,item in enumerate(responses):
+                        item['prompt_id'] = prompt_id_list[idx]
+
+            else:
+                responses = []
+
+            offset = 0
+            self.responses = {}
+            for actor_rank, num in num_requests:
+                self.responses[actor_rank] = responses[offset : offset + num]
+                offset += num
+
+            self.actor_counter = 0
+            self.requests = {}
+
+    def add_requests_llm_id(self, actor_rank, *, sampling_params, llm_inputs):
+        """
+        Save the requests from actors and generate responses when all actors have sent their requests
+        """
+        
+        self.requests[actor_rank] = llm_inputs
+        self.actor_counter += 1
+        if self.actor_counter == self.num_actors:
+            assert len(self.requests) == self.num_actors
+            num_requests = []
+            requests = []
+            prompt_id_list = []
+            ids_requests = []
+            for actor_rank, request in self.requests.items():
+                num_requests.append((actor_rank, len(request)))
+                requests.extend(request)
+                #requests.append(request['prompt_token_ids'])
+            
+            for item in requests:
+                if 'prompt_id' in item:
+                    prompt_id_list.append(item['prompt_id'])
+                    del item['prompt_id']
+                ids_requests.append(item['prompt_token_ids'])
+
+            if len(requests) > 0:
+                # For now we assume that all requests have the same sampling params
+                #raw_responses = self.llm.generate(requests, sampling_params=sampling_params)
+                raw_responses = self.llm.generate(sampling_params=sampling_params, prompt_token_ids=ids_requests)
+                responses = [
+                    {
+                        "response": response
+                    }
+                    for response in raw_responses
+                ]
                 
                 #add id to prompt
                 if len(prompt_id_list)==0:

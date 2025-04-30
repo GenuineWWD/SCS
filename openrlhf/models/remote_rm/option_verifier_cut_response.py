@@ -99,7 +99,7 @@ def get_reward():
     # 检查是否有 'query' 字段
     if "query" not in data:
         return jsonify({"error": "queries field is required"}), 400
-    #print(data['cut_response_text_dict'])
+    print(data['cut_response_text_dict'])
     rewards = []
     for q,problem in zip(data["query"],data["prompts"]):
         if problem is None:
@@ -118,7 +118,7 @@ def get_reward():
         acc_reward = float(output_queue.get())
         consist_r = consistency_reward(data['cut_response_text_dict'])
         do_print = random.randint(1, 20) == 1
-        #do_print = False
+        do_print = False
         if do_print:
             info=f"Query: {q}\n\nProblem: {problem}\n\n Answer: {answer}\n\n Response: {response}\n\n Format Reward: {format_reward}\n\n Acc Reward: {acc_reward}\n\nConsistency Reward: {consist_r}\n\n"
             info = re.sub(r"<\|.*?\|>","",info)

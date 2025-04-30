@@ -61,7 +61,7 @@ def split_experience_batch(experience: Experience, data_processor: Optional[Base
         assert batch_size == len(vals)
         for i, v in enumerate(vals):
             batch_kwargs[i][key] = v
-    if data_processor is not None and data_processor.model_family == "qwen":
+    if data_processor is not None and data_processor.model_family == "qwenvl":
         visual_inputs_batch = experience.visual_inputs
         visual_inputs_batch['input_ids'] = experience.sequences
         visual_inputs_chunks = data_processor.split_input_batch(visual_inputs_batch)
@@ -130,7 +130,7 @@ def make_experience_batch(items: List[BufferItem], data_processor: Optional[Base
     for key in items[0].info.keys():
         vals = torch.tensor([item.info[key] for item in items])
         kwargs["info"][key] = vals
-    if data_processor is not None:
+    if data_processor is not None and data_processor.model_family != "qwen":
         kwargs["visual_inputs"] = data_processor.make_input_batch([item.visual_inputs for item in items])
     return Experience(**kwargs)
 

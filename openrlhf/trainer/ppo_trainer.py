@@ -106,11 +106,14 @@ class PPOTrainer(ABC):
         self.processor = processor
         self.data_processor = None
         # for vlm critic model, not provice processor.
-        if self.args.train_vlm and processor is not None and self.args.model_family=="qwen":
+        if self.args.train_vlm and processor is not None and self.args.model_family=="qwenvl":
             self.data_processor = DATA_PROCESSOR_MAP[type(processor)](processor)
             self.tokenizer = self.data_processor.tokenizer
         elif self.args.train_vlm and self.args.model_family=="internvl":
             self.data_processor = DATA_PROCESSOR_MAP["InternVLProcessor"](processor,tokenizer)
+            self.tokenizer = self.data_processor.tknz
+        elif self.args.model_family=="qwen":
+            self.data_processor = DATA_PROCESSOR_MAP["QwenDataProcessor"](processor,tokenizer)
             self.tokenizer = self.data_processor.tknz
 
         self.generate_kwargs = generate_kwargs
