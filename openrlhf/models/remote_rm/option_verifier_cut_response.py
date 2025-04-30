@@ -73,7 +73,7 @@ def consistency_reward(responses):
         parse_answer = find_first_uppercase(parse_answer)
         answer_set.add(parse_answer)
 
-    return (5 - len(answer_set))*0.2
+    return (4 - len(answer_set))*0.3
 
 def verify_option(input_queue, output_queue):
     while True:
