@@ -781,9 +781,15 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
             for i, llm in enumerate(llms):
                 messages = all_prompts[i * batch_size : (i + 1) * batch_size]
                 if messages:
+                    # llm_inputs = [
+                    #     {
+                    #         "prompt_token_ids": self.data_processor.tokenize_message(message,max_length=self.prompt_max_len, tokenize=False, add_generation_prompt=True),
+                    #     }
+                    #     for message in messages
+                    # ]
                     llm_inputs = [
                         {
-                            "prompt_token_ids": self.data_processor.tokenize_message(message,max_length=self.prompt_max_len, tokenize=False, add_generation_prompt=True),
+                            "prompt": self.data_processor.apply_chat_template(message,tokenize=False, add_generation_prompt=True),
                         }
                         for message in messages
                     ]
@@ -889,7 +895,7 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
 
         # Expand prompt list based on the number of cut_samples per prompt
         all_outputs_to_cut = deepcopy(all_outputs)
-        all_outputs_to_cut_expand = sum([[prompt] * 4 for prompt in all_outputs_to_cut], [])
+        all_outputs_to_cut_expand = sum([[prompt] * args.n_cuts_per_prompt for prompt in all_outputs_to_cut], [])
         cut_batch_size = (len(all_outputs_to_cut_expand) + len(llms) - 1) // len(llms)
         # Distribute requests to engines and collect responses to outputs
         cut_refs = []
@@ -903,7 +909,7 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
                         response_ids_list = list(output["response"].outputs[0].token_ids)
                         #print(output["response"].outputs[0].token_ids)
                         prompts_text = self.data_processor.tknz.batch_decode(prompt_ids_list, skip_special_tokens=False)
-                        cut_idx = int(len(response_ids_list)*0.8)
+                        cut_idx = int(len(response_ids_list) * args.cut_keep_rate)
                         cut_response_ids = response_ids_list[:cut_idx]
                         cut_response = self.data_processor.tknz.batch_decode(cut_response_ids, skip_special_tokens=False)
                         #p = [prompts_text[0] + cut_response[0]]
@@ -911,8 +917,8 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
                         p = ''.join(prompts_text) + ''.join(cut_response)
                         #print('prompt_ids_list最大值1是:',max(prompt_ids_list))
                         #print('cut_response_ids最大值1是:',max(cut_response_ids))
-                        prompt_ids_list.extend(cut_response_ids)
-                        id_list = self.data_processor.tokenize_text(p)
+                        #prompt_ids_list.extend(cut_response_ids)
+                        #id_list = self.data_processor.tokenize_text(p)
                         #print('id_list最大值1是:',max(id_list))
                         #print('prompt_ids_list合并完之后最大值是:',max(prompt_ids_list))
                         #exit()
@@ -929,10 +935,20 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
                         #         },
                         #     }]
 
+                        # llm_inputs.append({
+                        #         "prompt_token_ids": id_list,
+                        #         'prompt_id':output['prompt_id']
+                        #     })
                         llm_inputs.append({
-                                "prompt_token_ids": id_list,
+                                "prompt": p,
                                 'prompt_id':output['prompt_id']
                             })
+                        # llm_inputs = [
+                        #         {
+                        #             "prompt": self.data_processor.apply_chat_template(message,tokenize=False, add_generation_prompt=True),
+                        #         }
+                        #         for message in messages
+                        #     ]
                     cut_refs.append(
                         llm.add_requests_llm_id.remote(rank, sampling_params=sampling_params, llm_inputs=llm_inputs)
                     )
@@ -959,7 +975,7 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
                         response_ids_list = list(output["response"].outputs[0].token_ids)
                         #print(output["response"].outputs[0].token_ids)
                         prompts_text = self.data_processor.tokenizer.batch_decode(prompt_ids_list, skip_special_tokens=False)
-                        cut_idx = int(len(response_ids_list)*0.8)
+                        cut_idx = int(len(response_ids_list) * args.cut_keep_rate)
                         cut_response_ids = response_ids_list[:cut_idx]
                         cut_response = self.data_processor.tokenizer.batch_decode(cut_response_ids, skip_special_tokens=False)
                         #p = [prompts_text[0] + cut_response[0]]

@@ -309,6 +309,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--n_samples_per_prompt", type=int, default=1, help="number of responses for each prompt in generation"
     )
+    parser.add_argument(
+        "--n_cuts_per_prompt", type=int, default=4, help="number of cut responses for each prompt in generation"
+    )
+    parser.add_argument(
+        "--cut_keep_rate", type=float, default=0.8, help="rate of kept percentage for cutting response"
+    )
     parser.add_argument("--save_value_network", action="store_true", default=False, help="Save critic model")
     parser.add_argument("--actor_learning_rate", type=float, default=1e-6)
     parser.add_argument("--critic_learning_rate", type=float, default=9e-6)

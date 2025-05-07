@@ -240,12 +240,12 @@ class LLMRayActor:
                 if 'prompt_id' in item:
                     prompt_id_list.append(item['prompt_id'])
                     del item['prompt_id']
-                ids_requests.append(item['prompt_token_ids'])
+                #ids_requests.append(item['prompt_token_ids'])
 
             if len(requests) > 0:
                 # For now we assume that all requests have the same sampling params
-                #raw_responses = self.llm.generate(requests, sampling_params=sampling_params)
-                raw_responses = self.llm.generate(sampling_params=sampling_params, prompt_token_ids=ids_requests)
+                raw_responses = self.llm.generate(requests, sampling_params=sampling_params)
+                #raw_responses = self.llm.generate(sampling_params=sampling_params, prompt_token_ids=ids_requests)
                 responses = [
                     {
                         "response": response

@@ -12,7 +12,7 @@ from flask import Flask, jsonify, request
 app = Flask(__name__)
 
 problem_to_answer = {}
-
+OPTION_LIST = ['A','B','C','D','E','F','G','H','I','J','K']
 
 def get_response_from_query(q: str):
     ends_of_sentence = ["<|im_end|>", "<｜end▁of▁sentence｜>", "<|endoftext|>"]
@@ -26,25 +26,10 @@ def get_response_from_query(q: str):
 
 
 def verify_format(content):
-    """
-    Verify if the string meets the format requirements:
-    - Must start with <think> and end with </answer>
-    - Must contain exactly one pair of <think>...</think> and <answer>...</answer> tags
-    - No extra characters allowed between </think> and <answer> tags
-    """
-    content = content.strip()
-    think_count = content.count("<think>")
-    answer_count = content.count("<answer>")
-    return bool(re.match(format_pattern, content, re.DOTALL)) and think_count == 1 and answer_count == 1
+    
+    content = extract_answer(content).strip()
 
-def remove_short_string_part(s1, s2):
-    # 确定长字符串和短字符串
-    long_str, short_str = (s1, s2) if len(s1) > len(s2) else (s2, s1)
-    # 检查长字符串是否以短字符串开头
-    if long_str.startswith(short_str):
-        return long_str[len(short_str):].strip()
-    else:
-        return long_str
+    return content in OPTION_LIST
 
 def find_similar_problem(problem):
     max_sim = -1
@@ -56,21 +41,39 @@ def find_similar_problem(problem):
             target_problem = p
     return target_problem
 
-def extract_answer(s):
-    match = re.search(r'<answer>(.*?)</answer>', s, flags=re.DOTALL)
-    return match.group(1) if match else s
+def extract_answer(ans):
+    start_tag = r'\boxed{'
 
-def find_first_uppercase(s):
-    for index, char in enumerate(s):
-        if char.isupper():
-            return char
-    return None
+    # 确保只存在一个匹配项
+    if ans.count(start_tag) != 1:
+        return ans
+
+    idx = ans.find(start_tag)
+    idx += len(start_tag)
+
+    brace_level = 1
+    content_start = idx
+    i = idx
+
+    while i < len(ans):
+        if ans[i] == '{':
+            brace_level += 1
+        elif ans[i] == '}':
+            brace_level -= 1
+            if brace_level == 0:
+                # 找到完整闭合的花括号
+                return ans[content_start:i]
+        i += 1
+
+    # 若未找到匹配的闭合括号
+    return ans
+
 
 def consistency_reward(responses):
     answer_set = set()
     for key,value in responses.items():
-        parse_answer = extract_answer(value)
-        parse_answer = find_first_uppercase(parse_answer)
+        parse_answer = extract_answer(value).strip()
+
         answer_set.add(parse_answer)
 
     return (5 - len(answer_set))*0.3
@@ -81,8 +84,8 @@ def verify_option(input_queue, output_queue):
         if len(sol) != 0:
             # We require the answer to be provided in correct latex (no malformed operators)
             # Reward 1 if the content is the same as the ground truth, 0 otherwise
-           parse_answer = extract_answer(content)
-           parse_answer = find_first_uppercase(parse_answer)
+           parse_answer = extract_answer(content).strip()
+           
            reward=1.0 if parse_answer==sol[0] else 0.0
         else:
             # If the gold solution is not parseable, we reward 1 to skip this example
