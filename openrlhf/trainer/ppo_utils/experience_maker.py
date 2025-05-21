@@ -59,6 +59,7 @@ class Experience:
     info: Optional[dict]
     kl: Optional[torch.Tensor] = None
     visual_inputs: Optional[dict] = field(default_factory=dict)
+    base_action_log_probs: Optional[torch.Tensor] = field(default_factory=torch.Tensor)
 
     @torch.no_grad()
     def to_device(self, device: torch.device):
@@ -71,6 +72,8 @@ class Experience:
         self.action_mask = to(self.action_mask, device)
         self.kl = to(self.kl, device)
         self.info = {key: to(value, device) for key, value in self.info.items()}
+        if self.base_action_log_probs is not None:
+            self.base_action_log_probs = to(self.base_action_log_probs, device)
         if self.visual_inputs is not None:
             self.visual_inputs = {key: to(value, device) for key, value in self.visual_inputs.items()}
         return self
@@ -87,6 +90,8 @@ class Experience:
         self.info = {key: pin_memory(value) for key, value in self.info.items()}
         if self.visual_inputs is not None:
             self.visual_inputs = {key: pin_memory(value) for key, value in self.visual_inputs.items()}
+        if self.base_action_log_probs is not None:
+            self.base_action_log_probs = pin_memory(self.base_action_log_probs)
         return self
 
 
@@ -236,7 +241,7 @@ class NaiveExperienceMaker(ABC):
                     generate_kwargs["gamma"],
                     generate_kwargs["lambd"],
                 )
-            elif self.advantage_estimator in ["reinforce", "rloo", "reinforce_baseline"]:
+            elif self.advantage_estimator in ["reinforce", "rloo", "reinforce_baseline","group_norm"]:
                 experience.returns = self.get_cumulative_returns(
                     reward,
                     experience.action_mask,
@@ -347,7 +352,7 @@ class NaiveExperienceMaker(ABC):
             # local RM
             r = self.reward_model(sequences, attention_mask)
 
-        if self.initial_model is not None:
+        if (self.initial_model is not None) and (not self.strategy.args.use_kl_loss):
             kl = compute_approx_kl(
                 action_log_probs,
                 base_action_log_probs,
@@ -356,6 +361,9 @@ class NaiveExperienceMaker(ABC):
             )
         else:
             kl = torch.zeros_like(action_log_probs, dtype=action_log_probs.dtype, device=action_log_probs.device)
+
+        if not self.strategy.args.use_kl_loss:
+            base_action_log_probs = None
 
         info = {
             "kl": masked_mean(kl, action_mask, dim=-1),
@@ -378,7 +386,8 @@ class NaiveExperienceMaker(ABC):
             action_mask,
             info,
             kl,
-            visual_inputs=visual_inputs
+            visual_inputs=visual_inputs,
+            base_action_log_probs=base_action_log_probs
         )
 
     @torch.no_grad()
@@ -407,7 +416,12 @@ class NaiveExperienceMaker(ABC):
             rewards = rewards - rewards.mean(-1, keepdim=True)
             rewards = rewards.reshape(-1).to(device="cpu").chunk(len(experiences))
             return experiences, rewards
-
+        elif args.advantage_estimator == "group_norm":
+            rewards = torch.cat([experience.info["reward"] for experience in experiences])
+            rewards = rewards.reshape(-1, args.n_samples_per_prompt).to(device="cuda")
+            rewards = (rewards - rewards.mean(-1, keepdim=True)) / (rewards.std(-1, keepdim=True) + 1e-9)
+            rewards = rewards.reshape(-1).to(device="cpu").chunk(len(experiences))
+            return experiences, rewards
         # default rewards
         return experiences, [experience.info["reward"] for experience in experiences]
 
@@ -677,7 +691,7 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
         if args.colocate_actor_ref or args.colocate_all_models:
             torch.cuda.empty_cache()
 
-        if self.initial_model is not None:
+        if (self.initial_model is not None) and (not self.strategy.args.use_kl_loss):
             kl = compute_approx_kl(
                 action_log_probs,
                 base_action_log_probs,
@@ -701,6 +715,9 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
             kl = unpacking_samples(kl, num_actions)
             kl_mean = torch.tensor([each_kl.mean() for each_kl in kl], device=device)
 
+        if not args.use_kl_loss:
+            base_action_log_probs = None
+
         info = {
             "kl": kl_mean,
             "reward": r,
@@ -723,7 +740,8 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
             action_mask,
             info,
             kl,
-            visual_inputs=visual_inputs
+            visual_inputs=visual_inputs,
+            base_action_log_probs=base_action_log_probs
         )
 
         self.actor.train()  # reset model state
@@ -979,7 +997,10 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
                         cut_response_ids = response_ids_list[:cut_idx]
                         cut_response = self.data_processor.tokenizer.batch_decode(cut_response_ids, skip_special_tokens=False)
                         #p = [prompts_text[0] + cut_response[0]]
-                        p = ''.join(prompts_text) + ''.join(cut_response)
+                        if args.cut_keep_rate > 0:
+                            p = ''.join(prompts_text) + ''.join(cut_response)
+                        else:
+                            p = ''.join(prompts_text)
                         # print('prompts_text is :',prompts_text)
                         # print('cut_response is :',cut_response)
                         #print("prompt 是：",p)
@@ -992,15 +1013,37 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
                         #             "max_pixels": int(os.getenv("MAX_PIXELS", 640 * 28 * 28)),
                         #         },
                         #     }]
-                        vllm_inputs.append({
-                                "prompt": p,
-                                "multi_modal_data":output['image_input'],
-                                "mm_processor_kwargs": {
-                                    "min_pixels": int(os.getenv("MIN_PIXELS", 4 * 28 * 28)),
-                                    "max_pixels": int(os.getenv("MAX_PIXELS", 640 * 28 * 28)),
-                                },
-                                'prompt_id':output['prompt_id']
-                            })
+                        # vllm_inputs.append({
+                        #         "prompt": p,
+                        #         "multi_modal_data":output['image_input'],
+                        #         "mm_processor_kwargs": {
+                        #             "min_pixels": int(os.getenv("MIN_PIXELS", 4 * 28 * 28)),
+                        #             "max_pixels": int(os.getenv("MAX_PIXELS", 640 * 28 * 28)),
+                        #         },
+                        #         'prompt_id':output['prompt_id']
+                        #     })
+                        #images = [self.data_processor.get_images_from_messages(m) for m in messages]
+                        if self.data_processor.image_aug:
+                            imgs = self.data_processor.image_augment_from_PIL(output['image_input']['image'])
+                            vllm_inputs.append({
+                                    "prompt": p,
+                                    "multi_modal_data":{"image": imgs} if imgs else None,
+                                    "mm_processor_kwargs": {
+                                        "min_pixels": int(os.getenv("MIN_PIXELS", 4 * 28 * 28)),
+                                        "max_pixels": int(os.getenv("MAX_PIXELS", 640 * 28 * 28)),
+                                    },
+                                    'prompt_id':output['prompt_id']
+                                })
+                        else:
+                            vllm_inputs.append({
+                                    "prompt": p,
+                                    "multi_modal_data":output['image_input'],
+                                    "mm_processor_kwargs": {
+                                        "min_pixels": int(os.getenv("MIN_PIXELS", 4 * 28 * 28)),
+                                        "max_pixels": int(os.getenv("MAX_PIXELS", 640 * 28 * 28)),
+                                    },
+                                    'prompt_id':output['prompt_id']
+                                })
                     cut_refs.append(
                         llm.add_requests_vlm_id.remote(rank, sampling_params=sampling_params, vllm_vision_input=vllm_inputs)
                     )

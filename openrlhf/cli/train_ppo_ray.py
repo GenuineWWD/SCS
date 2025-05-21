@@ -315,6 +315,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--cut_keep_rate", type=float, default=0.8, help="rate of kept percentage for cutting response"
     )
+    parser.add_argument("--image_aug", action="store_true", default=False, help="image_aug")
     parser.add_argument("--save_value_network", action="store_true", default=False, help="Save critic model")
     parser.add_argument("--actor_learning_rate", type=float, default=1e-6)
     parser.add_argument("--critic_learning_rate", type=float, default=9e-6)
@@ -330,6 +331,7 @@ if __name__ == "__main__":
             "to ensure the KL divergence calculated is non-negative"
         ),
     )
+    parser.add_argument("--use_kl_loss", action="store_true", default=False, help="whether to use KL loss from GRPO")
     parser.add_argument("--aux_loss_coef", type=float, default=0, help="MoE balancing loss")
     parser.add_argument("--adam_betas", type=float, nargs=2, default=(0.9, 0.95), help="Betas for Adam optimizer")
     parser.add_argument("--reward_clip_range", type=float, nargs=2, default=(-10, 10), help="Reward clip range")
@@ -347,9 +349,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--advantage_estimator",
         type=str,
-        choices=["gae", "reinforce", "rloo", "reinforce_baseline"],
+        choices=["gae", "reinforce", "rloo", "reinforce_baseline","group_norm"],
         default="gae",
-        help="Choose advantage estimation method: gae, reinforce, rloo, reinforce_baseline",
+        help="Choose advantage estimation method: gae, reinforce, rloo, reinforce_baseline, group_norm",
     )
 
     #  Models
