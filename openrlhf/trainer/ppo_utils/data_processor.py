@@ -380,11 +380,12 @@ class Qwen2VLDataProcessor(BaseDataProcessor):
 
 
 class InternVLDataProcessor(BaseDataProcessor):
-    def __init__(self, processor: ProcessorMixin,tknz):
+    def __init__(self, processor: ProcessorMixin,tknz,image_aug=False):
         super().__init__(processor)
 
         self.tknz = tknz
         self.tknz.padding_side = "left"
+        self.image_aug = image_aug
         if self.tknz.__class__.__name__ == "InternLM2Tokenizer":
 
             def eos_token_id_patch(self):
@@ -473,6 +474,23 @@ class InternVLDataProcessor(BaseDataProcessor):
 
     def split_input_batch(self) -> List[Dict]:
         pass
+
+    def image_augment_from_PIL(self,image):
+
+        if isinstance(image,List):
+            for img in image:
+                noise_level = random.randint(1,40)
+                img = add_image_noise(img,noise_level=noise_level)
+            return image
+        
+        elif isinstance(image,Image.Image):
+            noise_level = random.randint(1,40)
+            image = add_image_noise(image,noise_level=noise_level)
+
+            return image
+        
+        else:
+            raise ValueError("Invalid image format, must be a list of PIL or a PIL")
 
 class QwenDataProcessor(BaseDataProcessor):
     def __init__(self, processor: ProcessorMixin,tknz):

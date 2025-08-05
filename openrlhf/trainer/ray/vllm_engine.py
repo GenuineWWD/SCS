@@ -186,8 +186,9 @@ class LLMRayActor:
                             "response": response,
                             "pixel_values": mm_input["mm_kwargs"]["pixel_values_flat"],
                             "image_num_patches": mm_input["mm_kwargs"]["image_num_patches"].sum(),
+                            'image_input':request["multi_modal_data"]
                         }
-                        for response, mm_input in zip(raw_responses, mm_inputs)
+                        for response, mm_input,request in zip(raw_responses, mm_inputs,requests)
                     ]
                 else:
                     responses = [

@@ -828,7 +828,7 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
                         for message in messages
                     ]
                     refs.append(
-                        llm.add_requests_vlm.remote(rank, sampling_params=sampling_params, vllm_vision_input=vllm_inputs,internvl=True)
+                        llm.add_requests_vlm_id.remote(rank, sampling_params=sampling_params, vllm_vision_input=vllm_inputs,internvl=True)
                     )
 
         elif self.data_processor.model_family == "qwenvl":
@@ -1047,6 +1047,58 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
                     cut_refs.append(
                         llm.add_requests_vlm_id.remote(rank, sampling_params=sampling_params, vllm_vision_input=vllm_inputs)
                     )
+
+        elif self.data_processor.model_family == "internvl":
+            for i, llm in enumerate(llms):
+                messages = all_outputs_to_cut_expand[i * cut_batch_size : (i + 1) * cut_batch_size]
+                if messages:
+                    vllm_inputs = []
+                    for output in messages:
+                        prompt_ids_list = list(output["response"].prompt_token_ids)
+                        response_ids_list = list(output["response"].outputs[0].token_ids)
+                        #print(output["response"].outputs[0].token_ids)
+                        prompts_text = self.data_processor.tknz.batch_decode(prompt_ids_list, skip_special_tokens=False)
+                        cut_idx = int(len(response_ids_list) * args.cut_keep_rate)
+                        cut_response_ids = response_ids_list[:cut_idx]
+                        cut_response = self.data_processor.tknz.batch_decode(cut_response_ids, skip_special_tokens=False)
+                        #p = [prompts_text[0] + cut_response[0]]
+                        if args.cut_keep_rate > 0:
+                            p = ''.join(prompts_text) + ''.join(cut_response)
+                        else:
+                            p = ''.join(prompts_text)
+                        #前面应该不需要变
+                        p_list = prompt_ids_list + cut_response_ids
+                        if self.data_processor.image_aug:
+                            imgs = self.data_processor.image_augment_from_PIL(output['image_input']['image'])
+                            # vllm_inputs.append({
+                            #         "prompt": p,
+                            #         "multi_modal_data":{"image": imgs} if imgs else None,
+                            #         "mm_processor_kwargs": {
+                            #             "min_pixels": int(os.getenv("MIN_PIXELS", 4 * 28 * 28)),
+                            #             "max_pixels": int(os.getenv("MAX_PIXELS", 640 * 28 * 28)),
+                            #         },
+                            #         'prompt_id':output['prompt_id']
+                            #     })
+                            # internvl中self.data_processor.apply_chat_template就已经是list
+                            vllm_inputs.append({
+                                "prompt": p_list,
+                                "multi_modal_data": {
+                                    "image": imgs} if imgs else None,
+                                'prompt_id':output['prompt_id']
+                            })
+                            # refs.append(
+                            #     llm.add_requests_vlm_id.remote(rank, sampling_params=sampling_params, vllm_vision_input=vllm_inputs,internvl=True)
+                            # )
+                        else:
+                            vllm_inputs.append({
+                                "prompt": p_list,
+                                "multi_modal_data": output['image_input'],
+                                'prompt_id':output['prompt_id']
+                            })
+                    cut_refs.append(
+                        llm.add_requests_vlm_id.remote(rank, sampling_params=sampling_params, vllm_vision_input=vllm_inputs,internvl=True)
+                    )
+
         ray.get(cut_refs)
         torch.distributed.barrier()
         all_cut_output_refs = []
@@ -1145,6 +1197,7 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
                         "pixel_values":pixel_values,
                         "image_num_patches":image_num_patches
                     }
+                    cut_response = grouped_cut_outputs_dict[output['prompt_id']]
                 elif self.data_processor.model_family == "qwen":
                     visual_inputs = {}
                     cut_response = grouped_cut_outputs_dict[output['prompt_id']]
