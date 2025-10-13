@@ -1,4 +1,4 @@
-# VisuLogic: A Benchmark for Evaluating Visual Reasoning in Multi-modal Large Language Models
+# Enhancing the Outcome Reward-based RL Training of MLLMs with Self-Consistency Sampling
 
 **A Chanllenging Visual-centric Benchmark for Evaluating Multimodal Reasoning in MLLMs!**
 
