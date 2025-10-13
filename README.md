@@ -22,26 +22,6 @@ This repo is a fork of [**lmm-r1**](https://github.com/TideDra/lmm-r1).
 **Self‑Consistency Sampling (SCS)** improves outcome‑reward reinforcement learning for multimodal large language models (MLLMs). In multiple‑choice reasoning tasks, models often get the correct answer through faulty reasoning and receive unmerited rewards. SCS mitigates this by introducing visual perturbations and repeated resampling of reasoning trajectories, rewarding only consistent reasoning paths. Integrated into methods like RLOO, GRPO, and REINFORCE++, SCS boosts accuracy by up to **7.7%** on six multimodal benchmarks with minimal extra cost, and generalizes across models including **Qwen2.5‑VL** and **InternVL3**.
 ![Overview](assets/overview2.png)
 
-## 🌟 Key Features
-
-- 🚀 **Visuo-Logical Challenge**  
-  The first benchmark to integrate **visual perception** with **logical reasoning**, enabling authentic multimodal evaluation. Most models score below **30%** accuracy—only slightly above the 25% random baseline and far below the 51.4% achieved by humans—revealing significant gaps in visual reasoning.
-  
-- 🛠️ **Rigorous Design**  
-  Includes **1,000 meticulously curated questions**, spanning **6 domains** and **24 subcategories**, for comprehensive performance evaluation.
-  
-- 📝 **Anti-Linguistic Shortcut**  
-  Designed to avoid linguistic reasoning, ensuring tasks rely on **genuine visual reasoning** rather than shortcuts.
-
-- 💡 **RL Exploration**  
-  We identify the  RL technique as a promising direction for improving the visual reasoning capabilities of MLLMs. Through RL method, models reach **SOTA** in VisuLogic!
-
-- ✅ **Fully Open-source**  
-  We **open-source** all the evaluation code, training scripts, and datasets associated with this work to promote further research and innovation.
-
-## 🖼️  Examples of VisuLogic
-![Examples of VisuLogic](assets/examples_in_benchmarks.png)
-
 ## Benchmark Data
 
 For more detailed information, please refer to our Hugging Face datasets:
