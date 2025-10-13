@@ -4,7 +4,7 @@
 
 This repo is a fork of [**lmm-r1**](https://github.com/TideDra/lmm-r1).
 
-# VisuLogic Resouces
+# SCS Resouces
 
 [**🌐 Homepage**](https://visulogic-benchmark.github.io/VisuLogic) | [**🏆 Leaderboard**(coming soon)](https://visulogic-benchmark.github.io/VisuLogic/) | [**📖 Paper**](./assets/VisuLogic-paper.pdf) | [**🤗 Benchmark**](https://huggingface.co/datasets/VisuLogic/VisuLogic) | [**🤗 Train Data**](https://huggingface.co/datasets/VisuLogic/VisuLogic-Train) 
 
@@ -12,13 +12,11 @@ This repo is a fork of [**lmm-r1**](https://github.com/TideDra/lmm-r1).
 
 ## 🔔News
 
-- **🔥[2025-04-08] Release the benchmark and the codes! 🚀**
+- **🔥[2025-10-13] Release the dataset the codes! 🚀**
+- **🔥[2025-9-17] Our SCS paper is accepted by NeurIPS 2025! 🚀**
+  
 ## To-do
-- [x] Release the benchmark dataset and eval codes
-- [x] Release training codes
-- [x] Release the paper
-- [x] Release the training dataset
-- [x] Release model ckpts
+- [] Release the eval codes
 
 ## 📖 Introduction
 VisuLogic is a newly designed benchmark aimed at evaluating the visual reasoning capabilities of Multi-modal Large Language Models (MLLMs), independent of textual reasoning processes. It features carefully constructed visual reasoning tasks spanning multiple categories, divided into six types based on required reasoning skills (e.g., Quantitative Reasoning, which involves understanding and deducing changes in the quantity of elements in images). Unlike existing benchmarks, VisuLogic is a challenging visual reasoning benchmark that is inherently difficult to articulate using language, providing a more rigorous evaluation of the visual reasoning capabilities of MLLMs. Most models score below 30\% accuracy—only slightly above the 25\% random baseline and far below the 51.4\% achieved by humans—revealing significant gaps in visual reasoning.
