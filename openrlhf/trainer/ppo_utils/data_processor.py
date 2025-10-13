@@ -91,7 +91,7 @@ class BaseDataProcessor(ABC):
 
 
 def add_pixel_bounds(messages):
-    # 默认的像素范围
+    # default pixel range
     DEFAULT_MIN_PIXELS = int(os.getenv("MIN_PIXELS", 4 * 28 * 28))
     DEFAULT_MAX_PIXELS = int(os.getenv("MAX_PIXELS", 640 * 28 * 28))
 
@@ -111,61 +111,47 @@ def add_pixel_bounds(messages):
     return messages
 
 def add_image_noise(image, noise_level=10, noise_type='gaussian'):
-    """
-    给图片添加噪声的通用函数
     
-    参数：
-    - image_path: str, 输入图片路径
-    - noise_level: int, 噪声强度 (默认25，范围0-100)
-    - noise_type: str, 噪声类型 ['gaussian'(默认), 'salt_pepper']
-    - save_path: str, 可选保存路径
-    
-    返回：
-    - PIL.Image.Image 对象
-    """
-    # 1. 读取图片并转换为RGB模式
+    # 1. read image and convert to RGB mode
     if not isinstance(image,Image.Image):
         img = Image.open(image).convert('RGB')
     else:
         img = image
     img_array = np.array(img).astype(np.float32)
     
-    # 2. 生成噪声
+    # 2. generate noise
     noise = None
     max_pixel = 255.0
     scaled_noise_level = noise_level * max_pixel / 100
     
     if noise_type == 'gaussian':
-        # 高斯噪声（均值为0，标准差为噪声强度）
         noise = np.random.normal(
             loc=0, 
             scale=scaled_noise_level, 
             size=img_array.shape
         )
     elif noise_type == 'salt_pepper':
-        # 椒盐噪声（随机黑白点）
         salt_pepper = np.random.choice(
-            [0, 1, 2],  # 0: 原图, 1: 盐噪声, 2: 椒噪声
+            [0, 1, 2],  
             size=img_array.shape[:2],
             p=[
-                1 - (noise_level/100),  # 保留原图的概率
-                (noise_level/100)/2,     # 盐噪声概率
-                (noise_level/100)/2      # 椒噪声概率
+                1 - (noise_level/100),  
+                (noise_level/100)/2,     
+                (noise_level/100)/2      
             ]
         )
         
-        # 创建噪声矩阵
         noise = np.zeros_like(img_array)
-        noise[salt_pepper == 1] = max_pixel  # 盐噪声
-        noise[salt_pepper == 2] = -max_pixel  # 椒噪声
+        noise[salt_pepper == 1] = max_pixel  
+        noise[salt_pepper == 2] = -max_pixel  
     else:
-        raise ValueError(f"不支持的噪声类型: {noise_type}。可选 'gaussian' 或 'salt_pepper'")
+        raise ValueError(f"unsupported noise type: {noise_type}")
     
-    # 3. 叠加噪声并限制像素范围
+    # 3. add noise and limit pixel range
     noisy_array = img_array + noise
     noisy_array = np.clip(noisy_array, 0, max_pixel).astype(np.uint8)
     
-    # 4. 转换回PIL图像
+    # 4. convert back to PIL image
     noisy_img = Image.fromarray(noisy_array)
     
         
@@ -288,77 +274,7 @@ class Qwen2VLDataProcessor(BaseDataProcessor):
         return image_inputs
     
 
-    # def image_augment_from_messages(self, messages: List[Dict]) -> List[Dict]:
-        
-    #     def add_image_noise(image_path, noise_level=10, noise_type='gaussian'):
-    #         """
-    #         给图片添加噪声的通用函数
-            
-    #         参数：
-    #         - image_path: str, 输入图片路径
-    #         - noise_level: int, 噪声强度 (默认25，范围0-100)
-    #         - noise_type: str, 噪声类型 ['gaussian'(默认), 'salt_pepper']
-    #         - save_path: str, 可选保存路径
-            
-    #         返回：
-    #         - PIL.Image.Image 对象
-    #         """
-    #         # 1. 读取图片并转换为RGB模式
-    #         img = Image.open(image_path).convert('RGB')
-    #         img_array = np.array(img).astype(np.float32)
-            
-    #         # 2. 生成噪声
-    #         noise = None
-    #         max_pixel = 255.0
-    #         scaled_noise_level = noise_level * max_pixel / 100
-            
-    #         if noise_type == 'gaussian':
-    #             # 高斯噪声（均值为0，标准差为噪声强度）
-    #             noise = np.random.normal(
-    #                 loc=0, 
-    #                 scale=scaled_noise_level, 
-    #                 size=img_array.shape
-    #             )
-    #         elif noise_type == 'salt_pepper':
-    #             # 椒盐噪声（随机黑白点）
-    #             salt_pepper = np.random.choice(
-    #                 [0, 1, 2],  # 0: 原图, 1: 盐噪声, 2: 椒噪声
-    #                 size=img_array.shape[:2],
-    #                 p=[
-    #                     1 - (noise_level/100),  # 保留原图的概率
-    #                     (noise_level/100)/2,     # 盐噪声概率
-    #                     (noise_level/100)/2      # 椒噪声概率
-    #                 ]
-    #             )
-                
-    #             # 创建噪声矩阵
-    #             noise = np.zeros_like(img_array)
-    #             noise[salt_pepper == 1] = max_pixel  # 盐噪声
-    #             noise[salt_pepper == 2] = -max_pixel  # 椒噪声
-    #         else:
-    #             raise ValueError(f"不支持的噪声类型: {noise_type}。可选 'gaussian' 或 'salt_pepper'")
-            
-    #         # 3. 叠加噪声并限制像素范围
-    #         noisy_array = img_array + noise
-    #         noisy_array = np.clip(noisy_array, 0, max_pixel).astype(np.uint8)
-            
-    #         # 4. 转换回PIL图像
-    #         noisy_img = Image.fromarray(noisy_array)
-            
-                
-    #         return noisy_img
-            
-
-    #     for message in messages:
-    #         for item in message["content"]:
-    #             if isinstance(item, dict) and item.get("type") == "image":
-    #                 noise_level = random.randint(1,50)
-    #                 item["image"] = add_image_noise(item["image"],noise_level=noise_level)
-
-    # def _get_images_from_messages_aug(self, messages: List[Dict]) -> List[Dict]:
-    #     messages = add_pixel_bounds(messages)
-    #     image_inputs, _ = process_vision_info(messages)
-    #     return image_inputs
+   
     
     def image_augment_from_PIL(self,image):
 
@@ -497,7 +413,6 @@ class QwenDataProcessor(BaseDataProcessor):
         super().__init__(processor)
 
         self.tknz = tknz
-        #self.tknz = AutoTokenizer.from_pretrained("/mnt/afs/wangjiahao/workspace/hf_home/Qwen2.5-Math-7B-Instruct")
         self.tknz.padding_side = "left"
         self.model_family = "qwen"
     def __call__(

@@ -778,15 +778,7 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
         batch_size = (len(all_prompts) + len(llms) - 1) // len(llms)
         # Distribute requests to engines and collect responses to outputs
         refs = []
-        # if self.data_processor is None:
-        #     # For LLM
-        #     all_prompt_token_ids = self.tokenize_fn(all_prompts, self.prompt_max_len, padding=False)["input_ids"]
-        #     for i, llm in enumerate(llms):
-        #         prompt_token_ids = all_prompt_token_ids[i * batch_size : (i + 1) * batch_size]
-        #         refs.append(
-        #             llm.add_requests.remote(rank, sampling_params=sampling_params, prompt_token_ids=prompt_token_ids)
-        #         )
-
+       
         if self.data_processor is None:
             # For LLM
             all_prompt_token_ids = self.tokenize_fn(all_prompts, self.prompt_max_len, padding=False)["input_ids"]
@@ -799,12 +791,7 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
             for i, llm in enumerate(llms):
                 messages = all_prompts[i * batch_size : (i + 1) * batch_size]
                 if messages:
-                    # llm_inputs = [
-                    #     {
-                    #         "prompt_token_ids": self.data_processor.tokenize_message(message,max_length=self.prompt_max_len, tokenize=False, add_generation_prompt=True),
-                    #     }
-                    #     for message in messages
-                    # ]
+                   
                     llm_inputs = [
                         {
                             "prompt": self.data_processor.apply_chat_template(message,tokenize=False, add_generation_prompt=True),
@@ -863,54 +850,7 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
             all_output_refs.append(llm.get_responses.remote(rank))
         all_outputs = sum(ray.get(all_output_refs), [])
 
-        # cut response and regenerate
-        # for i in range(0, len(all_outputs)):
-        #     output = all_outputs[i]
-        #     for i in range(5):
-        #         llm = circular_access(llms, i)
-        #         prompt_ids_list = list(output["response"].prompt_token_ids)
-        #         response_ids_list = list(output["response"].outputs[0].token_ids)
-        #         #print(output["response"].outputs[0].token_ids)
-        #         prompts_text = self.data_processor.tokenizer.batch_decode(prompt_ids_list, skip_special_tokens=False)
-        #         cut_idx = int(len(response_ids_list)*0.8)
-        #         cut_response_ids = response_ids_list[:cut_idx]
-        #         cut_response = self.data_processor.tokenizer.batch_decode(cut_response_ids, skip_special_tokens=False)
-        #         #p = [prompts_text[0] + cut_response[0]]
-        #         p = ''.join(prompts_text) + ''.join(cut_response)
-        #         # print('prompts_text is :',prompts_text)
-        #         # print('cut_response is :',cut_response)
-        #         #print("prompt 是：",p)
-        #         #exit()
-        #         vllm_inputs = [{
-        #                 "prompt": p,
-        #                 "multi_modal_data":output['image_input'],
-        #                 "mm_processor_kwargs": {
-        #                     "min_pixels": int(os.getenv("MIN_PIXELS", 4 * 28 * 28)),
-        #                     "max_pixels": int(os.getenv("MAX_PIXELS", 640 * 28 * 28)),
-        #                 },
-        #             }]
-        #         refs.append(
-        #             llm.add_requests_vlm.remote(rank, sampling_params=sampling_params, vllm_vision_input=vllm_inputs)
-        #         )
-        #     ray.get(refs)
-
-        #     # Make sure all requests are sent.
-        #     torch.distributed.barrier()
-
-        #     # Retrieve and combine results from all outputs
-        #     all_cut_output_refs = []
-        #     for i, llm in enumerate(llms):
-        #         all_cut_output_refs.append(llm.get_responses.remote(rank))
-        #     all_cut_outputs_for_one_sample = sum(ray.get(all_cut_output_refs), [])
-
-        #     for idx,cut_output in enumerate(all_cut_outputs_for_one_sample):
-        #         cut_output_ids_list = list(cut_output["response"].outputs[0].token_ids)
-        #         cut_output_ids_tensor = torch.tensor(cut_output_ids_list)
-        #         #cut_output_tokens_list = self.data_processor.tokenizer.batch_decode(cut_output_ids_list, skip_special_tokens=False)
-        #         #output[f'cut_response_{idx}'] = ''.join(cut_output_tokens_list)  # list
-        #         output['cut_response'] = {}
-        #         output['cut_response'][f'cut_response_{idx}'] = cut_output_ids_tensor  #torch.tensor
-
+      
         # Expand prompt list based on the number of cut_samples per prompt
         all_outputs_to_cut = deepcopy(all_outputs)
         all_outputs_to_cut_expand = sum([[prompt] * args.n_cuts_per_prompt for prompt in all_outputs_to_cut], [])
@@ -925,48 +865,17 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
                     for output in messages:
                         prompt_ids_list = list(output["response"].prompt_token_ids)
                         response_ids_list = list(output["response"].outputs[0].token_ids)
-                        #print(output["response"].outputs[0].token_ids)
                         prompts_text = self.data_processor.tknz.batch_decode(prompt_ids_list, skip_special_tokens=False)
                         cut_idx = int(len(response_ids_list) * args.cut_keep_rate)
                         cut_response_ids = response_ids_list[:cut_idx]
-                        cut_response = self.data_processor.tknz.batch_decode(cut_response_ids, skip_special_tokens=False)
-                        #p = [prompts_text[0] + cut_response[0]]
-                        #p = prompt_ids_list + cut_response_ids
+                        cut_response = self.data_processor.tknz.batch_decode(cut_response_ids, skip_special_tokens=False)                       
                         p = ''.join(prompts_text) + ''.join(cut_response)
-                        #print('prompt_ids_list最大值1是:',max(prompt_ids_list))
-                        #print('cut_response_ids最大值1是:',max(cut_response_ids))
-                        #prompt_ids_list.extend(cut_response_ids)
-                        #id_list = self.data_processor.tokenize_text(p)
-                        #print('id_list最大值1是:',max(id_list))
-                        #print('prompt_ids_list合并完之后最大值是:',max(prompt_ids_list))
-                        #exit()
-                        # print('prompts_text is :',prompts_text)
-                        # print('cut_response is :',cut_response)
-                        #print("prompt 是：",p)
-                        #exit()
-                        # vllm_inputs = [{
-                        #         "prompt": p,
-                        #         "multi_modal_data":output['image_input'],
-                        #         "mm_processor_kwargs": {
-                        #             "min_pixels": int(os.getenv("MIN_PIXELS", 4 * 28 * 28)),
-                        #             "max_pixels": int(os.getenv("MAX_PIXELS", 640 * 28 * 28)),
-                        #         },
-                        #     }]
-
-                        # llm_inputs.append({
-                        #         "prompt_token_ids": id_list,
-                        #         'prompt_id':output['prompt_id']
-                        #     })
+                       
                         llm_inputs.append({
                                 "prompt": p,
                                 'prompt_id':output['prompt_id']
                             })
-                        # llm_inputs = [
-                        #         {
-                        #             "prompt": self.data_processor.apply_chat_template(message,tokenize=False, add_generation_prompt=True),
-                        #         }
-                        #         for message in messages
-                        #     ]
+                      
                     cut_refs.append(
                         llm.add_requests_llm_id.remote(rank, sampling_params=sampling_params, llm_inputs=llm_inputs)
                     )
@@ -974,55 +883,20 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
             for i, llm in enumerate(llms):
                 messages = all_outputs_to_cut_expand[i * cut_batch_size : (i + 1) * cut_batch_size]
                 if messages:
-                    # prompts = self.data_processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-                    # images = [self.data_processor.get_images_from_messages(m) for m in messages]
-                    # vllm_inputs = [{
-                    #         "prompt": p,
-                    #         "multi_modal_data":{"image": imgs} if imgs else None,
-                    #         "mm_processor_kwargs": {
-                    #             "min_pixels": int(os.getenv("MIN_PIXELS", 4 * 28 * 28)),
-                    #             "max_pixels": int(os.getenv("MAX_PIXELS", 640 * 28 * 28)),
-                    #         },
-                    #     } for p, imgs in zip(prompts,images)]
-                    # cut_refs.append(
-                    #     llm.add_requests_vlm.remote(rank, sampling_params=sampling_params, vllm_vision_input=vllm_inputs)
-                    # )
+                    
                     vllm_inputs = []
                     for output in messages:
                         prompt_ids_list = list(output["response"].prompt_token_ids)
                         response_ids_list = list(output["response"].outputs[0].token_ids)
-                        #print(output["response"].outputs[0].token_ids)
                         prompts_text = self.data_processor.tokenizer.batch_decode(prompt_ids_list, skip_special_tokens=False)
                         cut_idx = int(len(response_ids_list) * args.cut_keep_rate)
                         cut_response_ids = response_ids_list[:cut_idx]
                         cut_response = self.data_processor.tokenizer.batch_decode(cut_response_ids, skip_special_tokens=False)
-                        #p = [prompts_text[0] + cut_response[0]]
                         if args.cut_keep_rate > 0:
                             p = ''.join(prompts_text) + ''.join(cut_response)
                         else:
                             p = ''.join(prompts_text)
-                        # print('prompts_text is :',prompts_text)
-                        # print('cut_response is :',cut_response)
-                        #print("prompt 是：",p)
-                        #exit()
-                        # vllm_inputs = [{
-                        #         "prompt": p,
-                        #         "multi_modal_data":output['image_input'],
-                        #         "mm_processor_kwargs": {
-                        #             "min_pixels": int(os.getenv("MIN_PIXELS", 4 * 28 * 28)),
-                        #             "max_pixels": int(os.getenv("MAX_PIXELS", 640 * 28 * 28)),
-                        #         },
-                        #     }]
-                        # vllm_inputs.append({
-                        #         "prompt": p,
-                        #         "multi_modal_data":output['image_input'],
-                        #         "mm_processor_kwargs": {
-                        #             "min_pixels": int(os.getenv("MIN_PIXELS", 4 * 28 * 28)),
-                        #             "max_pixels": int(os.getenv("MAX_PIXELS", 640 * 28 * 28)),
-                        #         },
-                        #         'prompt_id':output['prompt_id']
-                        #     })
-                        #images = [self.data_processor.get_images_from_messages(m) for m in messages]
+                        
                         if self.data_processor.image_aug:
                             imgs = self.data_processor.image_augment_from_PIL(output['image_input']['image'])
                             vllm_inputs.append({
@@ -1056,39 +930,25 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
                     for output in messages:
                         prompt_ids_list = list(output["response"].prompt_token_ids)
                         response_ids_list = list(output["response"].outputs[0].token_ids)
-                        #print(output["response"].outputs[0].token_ids)
                         prompts_text = self.data_processor.tknz.batch_decode(prompt_ids_list, skip_special_tokens=False)
                         cut_idx = int(len(response_ids_list) * args.cut_keep_rate)
                         cut_response_ids = response_ids_list[:cut_idx]
                         cut_response = self.data_processor.tknz.batch_decode(cut_response_ids, skip_special_tokens=False)
-                        #p = [prompts_text[0] + cut_response[0]]
                         if args.cut_keep_rate > 0:
                             p = ''.join(prompts_text) + ''.join(cut_response)
                         else:
                             p = ''.join(prompts_text)
-                        #前面应该不需要变
                         p_list = prompt_ids_list + cut_response_ids
                         if self.data_processor.image_aug:
                             imgs = self.data_processor.image_augment_from_PIL(output['image_input']['image'])
-                            # vllm_inputs.append({
-                            #         "prompt": p,
-                            #         "multi_modal_data":{"image": imgs} if imgs else None,
-                            #         "mm_processor_kwargs": {
-                            #             "min_pixels": int(os.getenv("MIN_PIXELS", 4 * 28 * 28)),
-                            #             "max_pixels": int(os.getenv("MAX_PIXELS", 640 * 28 * 28)),
-                            #         },
-                            #         'prompt_id':output['prompt_id']
-                            #     })
-                            # internvl中self.data_processor.apply_chat_template就已经是list
+                           
                             vllm_inputs.append({
                                 "prompt": p_list,
                                 "multi_modal_data": {
                                     "image": imgs} if imgs else None,
                                 'prompt_id':output['prompt_id']
                             })
-                            # refs.append(
-                            #     llm.add_requests_vlm_id.remote(rank, sampling_params=sampling_params, vllm_vision_input=vllm_inputs,internvl=True)
-                            # )
+                           
                         else:
                             vllm_inputs.append({
                                 "prompt": p_list,
@@ -1114,8 +974,7 @@ class RemoteExperienceMaker(NaiveExperienceMaker):
             for idx,cut_output in enumerate(cut_outputs):
                 cut_output_ids_list = list(cut_output["response"].outputs[0].token_ids)
                 cut_output_ids_tensor = torch.tensor(cut_output_ids_list)
-                #cut_output_tokens_list = self.data_processor.tokenizer.batch_decode(cut_output_ids_list, skip_special_tokens=False)
-                #output[f'cut_response_{idx}'] = ''.join(cut_output_tokens_list)  # list
+              
                 grouped_cut_outputs_dict[prompt_id][f'cut_response_{idx}'] = cut_output_ids_tensor  #torch.tensor
         print('cut_response data map have been made successfully!')
 
