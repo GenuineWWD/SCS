@@ -1,4 +1,4 @@
-# Enhancing the Outcome Reward-based RL Training of MLLMs with Self-Consistency Sampling
+# [NeurIPS 2025] Enhancing the Outcome Reward-based RL Training of MLLMs with Self-Consistency Sampling
 
 **A simple, general sampling method for RLVR with multi-choice dataset to solve unfaithful reasoning phenomenon!**
 
