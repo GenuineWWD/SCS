@@ -6,9 +6,8 @@ This repo is a fork of [**lmm-r1**](https://github.com/TideDra/lmm-r1).
 
 # SCS Resouces
 
-[**🌐 Homepage**](https://visulogic-benchmark.github.io/VisuLogic) | [**🏆 Leaderboard**(coming soon)](https://visulogic-benchmark.github.io/VisuLogic/) | [**📖 Paper**](./assets/VisuLogic-paper.pdf) | [**🤗 Benchmark**](https://huggingface.co/datasets/VisuLogic/VisuLogic) | [**🤗 Train Data**](https://huggingface.co/datasets/VisuLogic/VisuLogic-Train) 
+ [**📖 Paper**](./assets/VisuLogic-paper.pdf) | [**🤗 Train Data**](https://huggingface.co/datasets/VisuLogic/VisuLogic-Train) 
 
-[**💻 Eval Code**](https://huggingface.co/datasets/VisuLogic/VisuLogic) |  [**💻 Train Code**](https://github.com/VisuLogic-Benchmark/VisuLogic-Train) | [**🤗 Checkpoint (7B)**](https://huggingface.co/VisuLogic/qwen2_5vl_7b_rloo_80steps_hf) | [**🤗 Checkpoint (38B)**](https://huggingface.co/VisuLogic/internvl2_5_38b_rloo_100steps_hf)
 
 ## 🔔News
 
