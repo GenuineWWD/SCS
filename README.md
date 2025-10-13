@@ -19,7 +19,7 @@ This repo is a fork of [**lmm-r1**](https://github.com/TideDra/lmm-r1).
 - [] Release the eval codes
 
 ## 📖 Introduction
-VisuLogic is a newly designed benchmark aimed at evaluating the visual reasoning capabilities of Multi-modal Large Language Models (MLLMs), independent of textual reasoning processes. It features carefully constructed visual reasoning tasks spanning multiple categories, divided into six types based on required reasoning skills (e.g., Quantitative Reasoning, which involves understanding and deducing changes in the quantity of elements in images). Unlike existing benchmarks, VisuLogic is a challenging visual reasoning benchmark that is inherently difficult to articulate using language, providing a more rigorous evaluation of the visual reasoning capabilities of MLLMs. Most models score below 30\% accuracy—only slightly above the 25\% random baseline and far below the 51.4\% achieved by humans—revealing significant gaps in visual reasoning.
+**Self‑Consistency Sampling (SCS)** improves outcome‑reward reinforcement learning for multimodal large language models (MLLMs). In multiple‑choice reasoning tasks, models often get the correct answer through faulty reasoning and receive unmerited rewards. SCS mitigates this by introducing visual perturbations and repeated resampling of reasoning trajectories, rewarding only consistent reasoning paths. Integrated into methods like RLOO, GRPO, and REINFORCE++, SCS boosts accuracy by up to **7.7%** on six multimodal benchmarks with minimal extra cost, and generalizes across models including **Qwen2.5‑VL** and **InternVL3**.
 ![Overview](assets/overview4.png)
 
 ## 🌟 Key Features
