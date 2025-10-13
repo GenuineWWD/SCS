@@ -20,7 +20,7 @@ This repo is a fork of [**lmm-r1**](https://github.com/TideDra/lmm-r1).
 
 ## 📖 Introduction
 **Self‑Consistency Sampling (SCS)** improves outcome‑reward reinforcement learning for multimodal large language models (MLLMs). In multiple‑choice reasoning tasks, models often get the correct answer through faulty reasoning and receive unmerited rewards. SCS mitigates this by introducing visual perturbations and repeated resampling of reasoning trajectories, rewarding only consistent reasoning paths. Integrated into methods like RLOO, GRPO, and REINFORCE++, SCS boosts accuracy by up to **7.7%** on six multimodal benchmarks with minimal extra cost, and generalizes across models including **Qwen2.5‑VL** and **InternVL3**.
-![Overview](assets/overview4.png)
+![Overview](assets/overview3.png)
 
 ## 🌟 Key Features
 
