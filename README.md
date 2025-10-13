@@ -1,8 +1,8 @@
 # Enhancing the Outcome Reward-based RL Training of MLLMs with Self-Consistency Sampling
 
-**A Chanllenging Visual-centric Benchmark for Evaluating Multimodal Reasoning in MLLMs!**
+**A simple, general sampling method for RLVR with multi-choice dataset to solve unfaithful reasoning phenomenon!**
 
-This the RL training codes repo of [VisuLogic](https://visulogic-benchmark.github.io/VisuLogic). This repo is a fork of [**lmm-r1**](https://github.com/TideDra/lmm-r1).
+This repo is a fork of [**lmm-r1**](https://github.com/TideDra/lmm-r1).
 
 For more details, please refer to the project page with dataset exploration and visualization tools: [https://visulogic-benchmark.github.io/VisuLogic/](https://visulogic-benchmark.github.io/VisuLogic/).
 
