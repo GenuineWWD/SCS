@@ -6,7 +6,7 @@ This repo is a fork of [**lmm-r1**](https://github.com/TideDra/lmm-r1).
 
 # SCS Resouces
 
- [**📖 Paper**](./assets/VisuLogic-paper.pdf) | [**🤗 Train Data**](https://huggingface.co/datasets/VisuLogic/VisuLogic-Train) 
+ [**📖 Paper**](./assets/VisuLogic-paper.pdf) | [**🤗 Dataset**](https://huggingface.co/datasets/GenuineWWD/SCS_data)
 
 
 ## 🔔News
@@ -21,26 +21,17 @@ This repo is a fork of [**lmm-r1**](https://github.com/TideDra/lmm-r1).
 **Self‑Consistency Sampling (SCS)** improves outcome‑reward reinforcement learning for multimodal large language models (MLLMs). In multiple‑choice reasoning tasks, models often get the correct answer through faulty reasoning and receive unmerited rewards. SCS mitigates this by introducing visual perturbations and repeated resampling of reasoning trajectories, rewarding only consistent reasoning paths. Integrated into methods like RLOO, GRPO, and REINFORCE++, SCS boosts accuracy by up to **7.7%** on six multimodal benchmarks with minimal extra cost, and generalizes across models including **Qwen2.5‑VL** and **InternVL3**.
 ![Overview](assets/overview2.png)
 
-## Benchmark Data
-
-For more detailed information, please refer to our Hugging Face datasets:
-
-- [**🤗 VisuLogic Dataset**](https://huggingface.co/datasets/VisuLogic/VisuLogic)
-
-## Evaluation
-Please refer to [VisuLogic-Eval](https://github.com/VisuLogic-Benchmark/VisuLogic-Eval.git) for evaluation codes.
-
 ## Training
 ### 📦Installation
 ```bash
-git clone https://github.com/VisuLogic-Benchmark/VisuLogic-Train.git
-cd VisuLogic-Train
+git clone https://github.com/GenuineWWD/SCS.git
+cd SCS
 pip install -e .[vllm]
 pip install flash_attn --no-build-isolation
 ```
 ### 📊Prepare dataset
 #### Dataset Access
-We publicly release the ​​VisuLogic Training Dataset​​, a curated collection derived from the same underlying benchmark sources used in our experiments. Please refer to [**🤗 VisuLogic Dataset**](https://huggingface.co/datasets/VisuLogic/VisuLogic) and download our datasets.
+We publicly release the Training and evaluation dataset. Please refer to [**🤗 Dataset**](https://huggingface.co/datasets/GenuineWWD/SCS_data) and download our datasets. Please unzip all the data and modify the data path correctly in the jsonl file.
 #### Preparing Your Custom Dataset
 To ensure compatibility with our codebase, multimodal prompt datasets must be formatted in OpenAI-compatible message structures. We recommend organizing your data as a JSON Lines (JSONL) file with the .jsonl extension.
 ```json
@@ -90,6 +81,9 @@ bash examples/visulogic/srun_qwen2_5vl7b.sh
 # Hardware Requirements: 48×80GB GPUs (e.g. A100/A800)
 bash examples/visulogic/srun_qwen2_5vl7b.sh
 ```
+
+## Evaluation
+Comming Soon
 
 ## Contact
 - Jiahao Wang: wjhwdscience@stu.xjtu.edu.cn
