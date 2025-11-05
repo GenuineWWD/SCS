@@ -6,9 +6,8 @@ This repo is a fork of [**lmm-r1**](https://github.com/TideDra/lmm-r1).
 
 # SCS Resouces
 
-[**🌐 Homepage**](https://visulogic-benchmark.github.io/VisuLogic) | [**🏆 Leaderboard**(coming soon)](https://visulogic-benchmark.github.io/VisuLogic/) | [**📖 Paper**](./assets/VisuLogic-paper.pdf) | [**🤗 Benchmark**](https://huggingface.co/datasets/VisuLogic/VisuLogic) | [**🤗 Train Data**](https://huggingface.co/datasets/VisuLogic/VisuLogic-Train) 
+ [**📖 Paper**](./assets/VisuLogic-paper.pdf) | [**🤗 Dataset**](https://huggingface.co/datasets/GenuineWWD/SCS_data)
 
-[**💻 Eval Code**](https://huggingface.co/datasets/VisuLogic/VisuLogic) |  [**💻 Train Code**](https://github.com/VisuLogic-Benchmark/VisuLogic-Train) | [**🤗 Checkpoint (7B)**](https://huggingface.co/VisuLogic/qwen2_5vl_7b_rloo_80steps_hf) | [**🤗 Checkpoint (38B)**](https://huggingface.co/VisuLogic/internvl2_5_38b_rloo_100steps_hf)
 
 ## 🔔News
 
@@ -20,48 +19,19 @@ This repo is a fork of [**lmm-r1**](https://github.com/TideDra/lmm-r1).
 
 ## 📖 Introduction
 **Self‑Consistency Sampling (SCS)** improves outcome‑reward reinforcement learning for multimodal large language models (MLLMs). In multiple‑choice reasoning tasks, models often get the correct answer through faulty reasoning and receive unmerited rewards. SCS mitigates this by introducing visual perturbations and repeated resampling of reasoning trajectories, rewarding only consistent reasoning paths. Integrated into methods like RLOO, GRPO, and REINFORCE++, SCS boosts accuracy by up to **7.7%** on six multimodal benchmarks with minimal extra cost, and generalizes across models including **Qwen2.5‑VL** and **InternVL3**.
-![Overview](assets/overview4.png)
-
-## 🌟 Key Features
-
-- 🚀 **Visuo-Logical Challenge**  
-  The first benchmark to integrate **visual perception** with **logical reasoning**, enabling authentic multimodal evaluation. Most models score below **30%** accuracy—only slightly above the 25% random baseline and far below the 51.4% achieved by humans—revealing significant gaps in visual reasoning.
-  
-- 🛠️ **Rigorous Design**  
-  Includes **1,000 meticulously curated questions**, spanning **6 domains** and **24 subcategories**, for comprehensive performance evaluation.
-  
-- 📝 **Anti-Linguistic Shortcut**  
-  Designed to avoid linguistic reasoning, ensuring tasks rely on **genuine visual reasoning** rather than shortcuts.
-
-- 💡 **RL Exploration**  
-  We identify the  RL technique as a promising direction for improving the visual reasoning capabilities of MLLMs. Through RL method, models reach **SOTA** in VisuLogic!
-
-- ✅ **Fully Open-source**  
-  We **open-source** all the evaluation code, training scripts, and datasets associated with this work to promote further research and innovation.
-
-## 🖼️  Examples of VisuLogic
-![Examples of VisuLogic](assets/examples_in_benchmarks.png)
-
-## Benchmark Data
-
-For more detailed information, please refer to our Hugging Face datasets:
-
-- [**🤗 VisuLogic Dataset**](https://huggingface.co/datasets/VisuLogic/VisuLogic)
-
-## Evaluation
-Please refer to [VisuLogic-Eval](https://github.com/VisuLogic-Benchmark/VisuLogic-Eval.git) for evaluation codes.
+![Overview](assets/overview2.png)
 
 ## Training
 ### 📦Installation
 ```bash
-git clone https://github.com/VisuLogic-Benchmark/VisuLogic-Train.git
-cd VisuLogic-Train
+git clone https://github.com/GenuineWWD/SCS.git
+cd SCS
 pip install -e .[vllm]
 pip install flash_attn --no-build-isolation
 ```
 ### 📊Prepare dataset
 #### Dataset Access
-We publicly release the ​​VisuLogic Training Dataset​​, a curated collection derived from the same underlying benchmark sources used in our experiments. Please refer to [**🤗 VisuLogic Dataset**](https://huggingface.co/datasets/VisuLogic/VisuLogic) and download our datasets.
+We publicly release the Training and evaluation dataset. Please refer to [**🤗 Dataset**](https://huggingface.co/datasets/GenuineWWD/SCS_data) and download our datasets. Please unzip all the data and modify the data path correctly in the jsonl file.
 #### Preparing Your Custom Dataset
 To ensure compatibility with our codebase, multimodal prompt datasets must be formatted in OpenAI-compatible message structures. We recommend organizing your data as a JSON Lines (JSONL) file with the .jsonl extension.
 ```json
@@ -111,6 +81,9 @@ bash examples/visulogic/srun_qwen2_5vl7b.sh
 # Hardware Requirements: 48×80GB GPUs (e.g. A100/A800)
 bash examples/visulogic/srun_qwen2_5vl7b.sh
 ```
+
+## Evaluation
+Comming Soon
 
 ## Contact
 - Jiahao Wang: wjhwdscience@stu.xjtu.edu.cn
