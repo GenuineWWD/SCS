@@ -19,7 +19,7 @@ T=$(date +%Y%m%d%H%M)
 LOG_PATH="log/srun_log_${T}.log"
 
 srun -p Intern5 \
-  --job-name=qwen-rl \
+  --job-name=scs-rl \
   --ntasks=${NNODES} \
   --ntasks-per-node=1 \
   --gres=gpu:${GPU_PER_NODE} \
