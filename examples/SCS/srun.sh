@@ -6,6 +6,8 @@ NNODES=1
 GPU_PER_NODE=8
 CPUS_PER_NODE=128
 SCRIPT=$SCRIPT_DIR/train.sh
+
+# rfpp_qwen2_5vl7b.sh, grpo_qwen2_5vl7b.sh, rfppbaseline_qwen2_5vl7b.sh, rloo_qwen2_5vl7b.sh, rloo_qwen2_5vl3b.sh, rloo_internvl3_8b.sh
 CONFIG_SCRIPTS=rloo_qwen2_5vl7b.sh
 #############################
 

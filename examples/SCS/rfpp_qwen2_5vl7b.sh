@@ -30,17 +30,17 @@ ray job submit \
    --micro_rollout_batch_size 4 \
    --rollout_batch_size 256 \
    --temperature 1 \
-   --n_samples_per_prompt 16 \
+   --n_samples_per_prompt 1 \
    --max_epochs 1 \
    --num_episodes 5 \
    --prompt_max_len 1024 \
    --max_samples 100000 \
    --generate_max_len 3000 \
-   --advantage_estimator rloo \
+   --advantage_estimator reinforce_baseline \
    --zero_stage 3 \
    --bf16 \
    --actor_learning_rate 1e-6 \
-   --init_kl_coef 0.0 \
+   --init_kl_coef 1e-2 \
    --prompt_data $DATASET \
    --normalize_reward \
    --flash_attn \
@@ -53,7 +53,7 @@ ray job submit \
    --max_ckpt_num 15 \
    --train_vlm  \
    --model_family qwenvl \
-   --n_cuts_per_prompt 4 \
+   --n_cuts_per_prompt 8 \
    --cut_keep_rate 0.8 \
    --image_aug 
 fi

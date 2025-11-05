@@ -36,7 +36,7 @@ ray job submit \
    --prompt_max_len 1024 \
    --max_samples 100000 \
    --generate_max_len 3000 \
-   --advantage_estimator rloo \
+   --advantage_estimator reinforce_baseline \
    --zero_stage 3 \
    --bf16 \
    --actor_learning_rate 1e-6 \
