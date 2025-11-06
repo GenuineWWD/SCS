@@ -76,7 +76,7 @@ Our codebase supports the QwenVL​​ and ​​InternVL​​ series of MLLMs 
 bash examples/visulogic/srun_qwen2_5vl7b.sh
 ```
 
-- Train on InternVL2_5-38B
+- Train on InternVL-8B
 ```bash
 # Hardware Requirements: 48×80GB GPUs (e.g. A100/A800)
 bash examples/visulogic/srun_qwen2_5vl7b.sh
