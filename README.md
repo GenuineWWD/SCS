@@ -69,17 +69,46 @@ To ensure compatibility with our codebase, multimodal prompt datasets must be fo
 
 ### ⚙️Start training
 
-Our codebase supports the QwenVL​​ and ​​InternVL​​ series of MLLMs and we provide Slurm job script examples.
-- Train on Qwen2.5-VL-7B-Instruct
+You should modify the `CONFIG_SCRIPTS` variable in `examples/SCS/srun.sh` to run the specific trainning process.
+For example, if you wand to train Qwen2.5-VL-7B-Instruct on RLOO method, you should set the `CONFIG_SCRIPTS` as `rloo_qwen2_5vl7b.sh`:
 ```bash
-# Hardware Requirements: 8×80GB GPUs (e.g. A100/A800)
-bash examples/visulogic/srun_qwen2_5vl7b.sh
+
+SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+
+#############################
+NNODES=1
+GPU_PER_NODE=8
+CPUS_PER_NODE=128
+SCRIPT=$SCRIPT_DIR/train.sh
+
+# rfpp_qwen2_5vl7b.sh, grpo_qwen2_5vl7b.sh, rfppbaseline_qwen2_5vl7b.sh, rloo_qwen2_5vl7b.sh, rloo_qwen2_5vl3b.sh, rloo_internvl3_8b.sh
+CONFIG_SCRIPTS=rloo_qwen2_5vl7b.sh
+#############################
+
+export GPUS=$((GPU_PER_NODE * NNODES))
+
+cd $(dirname $0)
+mkdir -p $(dirname $0)/log
+T=$(date +%Y%m%d%H%M)
+LOG_PATH="log/srun_log_${T}.log"
+
+srun -p Intern5 \
+  --job-name=scs-rl \
+  --ntasks=${NNODES} \
+  --ntasks-per-node=1 \
+  --gres=gpu:${GPU_PER_NODE} \
+  --cpus-per-task=${CPUS_PER_NODE} \
+  --kill-on-bad-exit=1 \
+  -o $LOG_PATH \
+  -e $LOG_PATH \
+  --quotatype=reserved \
+  bash $SCRIPT $CONFIG_SCRIPTS
 ```
 
-- Train on InternVL-8B
+Then, run the script like:
 ```bash
-# Hardware Requirements: 48×80GB GPUs (e.g. A100/A800)
-bash examples/visulogic/srun_qwen2_5vl7b.sh
+# Hardware Requirements: 8×80GB GPUs (e.g. A100/A800)
+bash examples/SCS/srun.sh
 ```
 
 ## Evaluation
@@ -93,11 +122,5 @@ Comming Soon
 
 **BibTeX:**
 ```bibtex
-@misc{visulogic,
-    title        = {VisuLogic: A Benchmark for Evaluating Visual Reasoning in Multi-modal Large Language Models},
-    author       = {VisuLogic-Benchmark},
-    howpublished = {\url{https://github.com/VisuLogic-Benchmark/VisuLogic-Eval}},
-    year         = {2025},
-    note         = {Accessed: 2025-04-08}
-}
+
 ```
