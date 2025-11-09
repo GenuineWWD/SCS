@@ -1,0 +1,6 @@
+pandas>=2.0.0
+datasets>=2.14.0
+torch==2.5.1
+tqdm>=4.65.0
+transformers @ git+https://github.com/huggingface/transformers.git@9985d06add07a4cc691dc54a7e34f54205c04d40
+Pillow>=10.0.0
