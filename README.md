@@ -6,7 +6,7 @@ This repo is a fork of [**lmm-r1**](https://github.com/TideDra/lmm-r1).
 
 # SCS Resouces
 
- [**📖 Paper**](./assets/VisuLogic-paper.pdf) | [**🤗 Dataset**](https://huggingface.co/datasets/GenuineWWD/SCS_data)
+ [**📖 Paper**](./assets/VisuLogic-paper.pdf) | [**🤗 Dataset**](https://huggingface.co/datasets/GenuineWWD/SCS_data) | [**💻 Code**](https://github.com/GenuineWWD/SCS)
 
 
 ## 🔔News
