@@ -122,10 +122,10 @@ Please refer to [evaluation](evaluation/README.md) for more details.
 
 **BibTeX:**
 ```bibtex
-@inproceedings{wang2025scs,
+@article{wang2025enhancing,
   title={Enhancing the Outcome Reward-based RL Training of MLLMs with Self-Consistency Sampling},
   author={Wang, Jiahao and Xu, Weiye and Yang, Aijun and Zhou, Wengang and Lu, Lewei and Li, Houqiang and Wang, Xiaohua and Zhu, Jinguo},
-  booktitle={Conference on Neural Information Processing Systems (NeurIPS)},
+  journal={arXiv preprint arXiv:2511.10648},
   year={2025}
 }
 ```
